@@ -131,12 +131,18 @@ async function loadDashboard() {
 
 async function loadHives() {
   const { data, error } = await db.from('hives')
-    .select('*')
+    .select(`*, inspections(inspection_date, queen_spotted, created_at)`)
     .eq('is_active', true)
     .order('created_at')
 
   if (error) return console.error(error)
-  state.hives = data || []
+
+  // Attach last inspection info to each hive
+  state.hives = (data || []).map(hive => {
+    const sorted = (hive.inspections || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    const last = sorted[0] || null
+    return { ...hive, _lastInspection: last }
+  })
   cacheData('hives', state.hives)
   renderHiveList()
 }
@@ -151,12 +157,16 @@ function renderHiveList() {
       </div>`
     return
   }
-  el.innerHTML = state.hives.map(hive => `
+  el.innerHTML = state.hives.map(hive => {
+    const last = hive._lastInspection
+    const dateStr = last ? formatDate(last.inspection_date) : 'No inspections yet'
+    const queenBadge = last?.queen_spotted ? '<span class="badge green">👑 Queen seen</span>' : ''
+    return `
     <div class="hive-card" onclick="showHiveDetail('${hive.id}')" role="button" tabindex="0" aria-label="View ${hive.name}">
       <h3>🐝 ${hive.name}</h3>
       <div class="hive-meta">
-        <span class="hive-stat">📅 ${hive.last_inspection || 'No inspections yet'}</span>
-        ${hive.queen_spotted ? '<span class="badge green">👑 Queen seen</span>' : ''}
+        <span class="hive-stat">📅 ${dateStr}</span>
+        ${queenBadge}
       </div>
     </div>
   `).join('')
@@ -419,7 +429,7 @@ function handlePhotoSelect(input) {
 async function uploadPhoto(file) {
   const ext = file.name.split('.').pop()
   const path = `${state.user.id}/${Date.now()}.${ext}`
-  const { error } = await db.storage.from('hive-photos').upload(path, file)
+  const { error } = await db.storage.from('hive-photos').upload(path, file, { upsert: true })
   if (error) { console.error('Upload error:', error); return null }
   const { data } = db.storage.from('hive-photos').getPublicUrl(path)
   return data.publicUrl
