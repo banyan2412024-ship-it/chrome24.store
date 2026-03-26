@@ -1,7 +1,5 @@
 {
   "redirects": [
-    { "source": "/bees", "destination": "https://bees.chrome24.store", "permanent": false },
-    { "source": "/bees/(.*)", "destination": "https://bees.chrome24.store/$1", "permanent": false },
     { "source": "/app", "destination": "https://app.chrome24.store", "permanent": false },
     { "source": "/app/(.*)", "destination": "https://app.chrome24.store/$1", "permanent": false }
   ]

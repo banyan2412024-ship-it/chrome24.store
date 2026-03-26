@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#2c5f2d" />
+  <link rel="manifest" href="manifest.json" />
+  <title>🐝 Bee Log Book</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ── Auth Screen ─────────────────────────────────────────────────────── -->
+<div id="screen-auth" class="screen active">
+  <div class="auth-screen">
+    <div class="auth-box">
+      <div class="auth-logo">🐝</div>
+      <h1 class="auth-title">Bee Log Book</h1>
+      <p class="auth-sub">Your personal hive management journal</p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchAuthTab('signin')" aria-label="Sign in tab">Sign In</button>
+        <button class="auth-tab" onclick="switchAuthTab('signup')" aria-label="Sign up tab">Sign Up</button>
+      </div>
+
+      <div id="auth-signin">
+        <div class="form-group">
+          <label for="signin-email">Email Address</label>
+          <input type="email" id="signin-email" placeholder="your@email.com" autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label for="signin-password">Password</label>
+          <input type="password" id="signin-password" placeholder="Your password" autocomplete="current-password" />
+        </div>
+        <button class="btn btn-primary btn-full" onclick="signIn()" id="signin-btn">Sign In</button>
+      </div>
+
+      <div id="auth-signup" style="display:none">
+        <div class="form-group">
+          <label for="signup-name">Your Name</label>
+          <input type="text" id="signup-name" placeholder="e.g. John Smith" autocomplete="name" />
+        </div>
+        <div class="form-group">
+          <label for="signup-email">Email Address</label>
+          <input type="email" id="signup-email" placeholder="your@email.com" autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password (min 6 characters)</label>
+          <input type="password" id="signup-password" placeholder="Choose a password" autocomplete="new-password" />
+        </div>
+        <button class="btn btn-primary btn-full" onclick="signUp()" id="signup-btn">Create Account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Dashboard Screen ────────────────────────────────────────────────── -->
+<div id="screen-dashboard" class="screen">
+  <header>
+    <div>
+      <h1>🐝 Bee Log Book</h1>
+      <div class="user-greeting" id="user-greeting">Welcome back!</div>
+    </div>
+    <button class="btn btn-ghost" onclick="signOut()" aria-label="Sign out">Sign Out</button>
+  </header>
+
+  <div class="container">
+    <div class="quick-actions">
+      <button class="quick-btn" onclick="startInspection()" aria-label="New inspection">
+        <span class="icon">🔍</span>New Inspection
+      </button>
+      <button class="quick-btn" onclick="showScreen('screen-feeding')" aria-label="Record feeding">
+        <span class="icon">🍯</span>Record Feeding
+      </button>
+      <button class="quick-btn" onclick="showScreen('screen-gallery')" aria-label="View photos">
+        <span class="icon">📸</span>Photos
+      </button>
+    </div>
+
+    <div class="section-title">🏠 My Hives</div>
+    <div id="hive-list"><div class="spinner"></div></div>
+    <button class="btn btn-outline btn-full" onclick="openAddHive()" style="margin-top:8px">+ Add New Hive</button>
+
+    <div class="section-title">📋 Recent Activity</div>
+    <div id="recent-activity"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ── Inspection Wizard ────────────────────────────────────────────────── -->
+<div id="screen-inspect" class="screen">
+  <header>
+    <div>
+      <h1>🔍 Inspection</h1>
+      <div class="user-greeting" id="wizard-step-label">Step 1 of 8</div>
+    </div>
+    <button class="btn btn-ghost" onclick="showScreen('screen-dashboard')" aria-label="Cancel inspection">Cancel</button>
+  </header>
+
+  <div class="container">
+    <div class="wizard-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+      <div class="wizard-progress-fill" id="wizard-progress"></div>
+    </div>
+
+    <!-- Step 1: Select Hive -->
+    <div class="wizard-step active" id="step-1">
+      <div class="step-title">Which hive? 🏠</div>
+      <div class="step-sub">Select the hive you are inspecting today</div>
+      <div class="big-options" id="hive-select-options"></div>
+      <div class="wizard-nav">
+        <button class="btn btn-outline" onclick="showScreen('screen-dashboard')">Cancel</button>
+        <button class="btn btn-primary" onclick="wizardNext()" id="step1-next" disabled>Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Queen spotted? -->
+    <div class="wizard-step" id="step-2">
+      <div class="step-title">Did you spot the queen? 👑</div>
+      <div class="step-sub">Look for the larger bee moving through the frames</div>
+      <div class="big-options">
+        <button class="big-opt" onclick="selectOption('queen_spotted', true, this)" aria-label="Yes, queen spotted">
+          <span class="opt-icon">👑</span> Yes, I saw her!
+        </button>
+        <button class="big-opt" onclick="selectOption('queen_spotted', false, this)" aria-label="No queen spotted">
+          <span class="opt-icon">❓</span> Not this time
+        </button>
+      </div>
+      <div class="wizard-nav">
+        <button class="btn btn-outline" onclick="wizardBack()">← Back</button>
+        <button class="btn btn-primary" onclick="wizardNext()" id="step2-next" disabled>Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Brood pattern -->
+    <div class="wizard-step" id="step-3">
+      <div class="step-title">Brood pattern? 🥚</div>
+      <div class="step-sub">How does the pattern of eggs and larvae look?</div>
+      <div class="big-options">
+        <button class="big-opt" onclick="selectOption('brood_pattern', 'good', this)" aria-label="Good brood pattern">
+          <span class="opt-icon">👍</span> Good — solid, even pattern
+        </button>
+        <button class="big-opt" onclick="selectOption('brood_pattern', 'spotty', this)" aria-label="Spotty brood pattern">
+          <span class="opt-icon">⚠️</span> Spotty — some gaps
+        </button>
+        <button class="big-opt" onclick="selectOption('brood_pattern', 'none', this)" aria-label="No brood">
+          <span class="opt-icon">❌</span> None visible
+        </button>
+      </div>
+      <div class="wizard-nav">
+        <button class="btn btn-outline" onclick="wizardBack()">← Back</button>
+        <button class="btn btn-primary" onclick="wizardNext()" id="step3-next" disabled>Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Temperament -->
+    <div class="wizard-step" id="step-4">
+      <div class="step-title">Bee temperament? 🐝</div>
+      <div class="step-sub">How did the bees behave during inspection?</div>
+      <div class="big-options">
+        <button class="big-opt" onclick="selectOption('temperament', 'calm', this)" aria-label="Calm temperament">
+          <span class="opt-icon">😊</span> Calm — very gentle
+        </button>
+        <button class="big-opt" onclick="selectOption('temperament', 'moderate', this)" aria-label="Moderate temperament">
+          <span class="opt-icon">😐</span> Moderate — a bit lively
+        </button>
+        <button class="big-opt" onclick="selectOption('temperament', 'aggressive', this)" aria-label="Aggressive temperament">
+          <span class="opt-icon">😠</span> Aggressive — many stings
+        </button>
+      </div>
+      <div class="wizard-nav">
+        <button class="btn btn-outline" onclick="wizardBack()">← Back</button>
+        <button class="btn btn-primary" onclick="wizardNext()" id="step4-next" disabled>Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Weather -->
+    <div class="wizard-step" id="step-5">
+      <div class="step-title">What's the weather? ☀️</div>
+      <div class="step-sub">Weather conditions during your inspection</div>
+      <div class="big-options">
+        <button class="big-opt" onclick="selectOption('weather', 'sunny', this)" aria-label="Sunny weather">
+          <span class="opt-icon">☀️</span> Sunny
+        </button>
+        <button class="big-opt" onclick="selectOption('weather', 'cloudy', this)" aria-label="Cloudy weather">
+          <span class="opt-icon">☁️</span> Cloudy
+        </button>
+        <button class="big-opt" onclick="selectOption('weather', 'rainy', this)" aria-label="Rainy weather">
+          <span class="opt-icon">🌧️</span> Rainy
+        </button>
+        <button class="big-opt" onclick="selectOption('weather', 'windy', this)" aria-label="Windy weather">
+          <span class="opt-icon">💨</span> Windy
+        </button>
+      </div>
+      <div class="wizard-nav">
+        <button class="btn btn-outline" onclick="wizardBack()">← Back</button>
+        <button class="btn btn-primary" onclick="wizardNext()" id="step5-next" disabled>Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 6: Pest issues -->
+    <div class="wizard-step" id="step-6">
+      <div class="step-title">Any pest issues? 🐛</div>
+      <div class="step-sub">Select all that apply (tap to select/deselect)</div>
+      <div class="checkbox-list">
+        <label class="checkbox-item" onclick="togglePest('none', this)">
+          <input type="checkbox" name="pest" value="none" aria-label="No issues" /> ✅ No issues
+        </label>
+        <label class="checkbox-item" onclick="togglePest('varroa', this)">
+          <input type="checkbox" name="pest" value="varroa" aria-label="Varroa mites" /> 🔴 Varroa mites
+        </label>
+        <label class="checkbox-item" onclick="togglePest('wax_moths', this)">
+          <input type="checkbox" name="pest" value="wax_moths" aria-label="Wax moths" /> 🦋 Wax moths
+        </label>
+        <label class="checkbox-item" onclick="togglePest('ants', this)">
+          <input type="checkbox" name="pest" value="ants" aria-label="Ants" /> 🐜 Ants
+        </label>
+        <label class="checkbox-item" onclick="togglePest('small_hive_beetles', this)">
+          <input type="checkbox" name="pest" value="small_hive_beetles" aria-label="Small hive beetles" /> 🪲 Small hive beetles
+        </label>
+      </div>
+      <div class="wizard-nav">
+        <button class="btn btn-outline" onclick="wizardBack()">← Back</button>
+        <button class="btn btn-primary" onclick="wizardNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 7: Photo + Honey + Notes -->
+    <div class="wizard-step" id="step-7">
+      <div class="step-title">Extra details 📝</div>
+      <div class="step-sub">All optional — add what you can</div>
+
+      <div class="form-group">
+        <label>Honey harvested (kg)</label>
+        <input type="number" id="honey-kg" min="0" step="0.1" placeholder="e.g. 2.5 (leave blank if none)" />
+      </div>
+
+      <div class="form-group">
+        <label>📸 Add a photo</label>
+        <div class="photo-upload" onclick="document.getElementById('photo-input').click()" role="button" aria-label="Upload photo">
+          <div class="upload-icon">📷</div>
+          <div>Tap to take photo or choose from gallery</div>
+          <img id="photo-preview" class="photo-preview" alt="Selected photo preview" />
+        </div>
+        <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoSelect(this)" />
+      </div>
+
+      <div class="form-group">
+        <label>🎙️ Notes</label>
+        <div class="notes-row">
+          <textarea id="inspection-notes" placeholder="Any observations about this hive..."></textarea>
+          <button class="btn voice-btn" onclick="toggleVoice()" id="voice-btn" title="Voice input" aria-label="Toggle voice dictation">🎙️</button>
+        </div>
+      </div>
+
+      <div class="wizard-nav">
+        <button class="btn btn-outline" onclick="wizardBack()">← Back</button>
+        <button class="btn btn-primary" onclick="wizardNext()">Review →</button>
+      </div>
+    </div>
+
+    <!-- Step 8: Review & Save -->
+    <div class="wizard-step" id="step-8">
+      <div class="step-title">Review & Save 💾</div>
+      <div class="step-sub">Check your entries then tap Save</div>
+      <div class="card" id="review-summary"></div>
+      <div class="wizard-nav">
+        <button class="btn btn-outline" onclick="wizardBack()">← Edit</button>
+        <button class="btn btn-primary" onclick="saveInspection()" id="save-btn">💾 SAVE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Feeding Screen ──────────────────────────────────────────────────── -->
+<div id="screen-feeding" class="screen">
+  <header>
+    <div><h1>🍯 Record Feeding</h1></div>
+    <button class="btn btn-ghost" onclick="showScreen('screen-dashboard')" aria-label="Cancel">Cancel</button>
+  </header>
+  <div class="container">
+    <div class="form-group">
+      <label for="feed-hive">Select Hive</label>
+      <select id="feed-hive" aria-label="Select hive for feeding"></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="feed-date">Date</label>
+        <input type="date" id="feed-date" />
+      </div>
+      <div class="form-group">
+        <label for="feed-type">Syrup Type</label>
+        <select id="feed-type" aria-label="Syrup type">
+          <option value="1:1">1:1 (Spring)</option>
+          <option value="2:1">2:1 (Autumn)</option>
+          <option value="commercial">Commercial</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="feed-amount">Amount (litres)</label>
+        <input type="number" id="feed-amount" min="0" step="0.5" placeholder="e.g. 2.0" />
+      </div>
+      <div class="form-group" style="padding-top:32px">
+        <label class="checkbox-item" id="pollen-patty-label">
+          <input type="checkbox" id="pollen-patty" aria-label="Pollen patty given" /> 🌸 Pollen patty
+        </label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="feed-notes">Notes (optional)</label>
+      <textarea id="feed-notes" placeholder="Any observations..."></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveFeeding()" style="margin-top:8px">💾 Save Feeding</button>
+  </div>
+</div>
+
+<!-- ── Gallery Screen ─────────────────────────────────────────────────── -->
+<div id="screen-gallery" class="screen">
+  <header>
+    <div><h1>📸 Photo Gallery</h1></div>
+    <button class="btn btn-ghost" onclick="showScreen('screen-dashboard')" aria-label="Back to dashboard">← Back</button>
+  </header>
+  <div class="container">
+    <div id="gallery-grid" class="photo-grid"></div>
+  </div>
+</div>
+
+<!-- ── Bottom Navigation ───────────────────────────────────────────────── -->
+<nav class="bottom-nav" id="bottom-nav" style="display:none" role="navigation" aria-label="Main navigation">
+  <button class="nav-btn active" onclick="showScreen('screen-dashboard')" id="nav-home" aria-label="Home">
+    <span class="nav-icon">🏠</span>Home
+  </button>
+  <button class="nav-btn" onclick="startInspection()" id="nav-inspect" aria-label="New inspection">
+    <span class="nav-icon">🔍</span>Inspect
+  </button>
+  <button class="nav-btn" onclick="showScreen('screen-feeding')" id="nav-feed" aria-label="Record feeding">
+    <span class="nav-icon">🍯</span>Feed
+  </button>
+  <button class="nav-btn" onclick="showScreen('screen-gallery')" id="nav-gallery" aria-label="Photo gallery">
+    <span class="nav-icon">📸</span>Gallery
+  </button>
+</nav>
+
+<!-- ── Add Hive Modal ─────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-add-hive" role="dialog" aria-modal="true" aria-label="Add new hive">
+  <div class="modal">
+    <h2>🏠 Add New Hive</h2>
+    <div class="form-group">
+      <label for="new-hive-name">Hive Name</label>
+      <input type="text" id="new-hive-name" placeholder="e.g. Hive 1, The Oak Hive..." />
+    </div>
+    <div style="display:flex;gap:12px">
+      <button class="btn btn-outline" style="flex:1" onclick="closeModal('modal-add-hive')">Cancel</button>
+      <button class="btn btn-primary" style="flex:1" onclick="addHive()">Add Hive</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ──────────────────────────────────────────────────────────── -->
+<div class="toast" id="toast" role="alert" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
