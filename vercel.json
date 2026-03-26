@@ -2,5 +2,10 @@
   "redirects": [
     { "source": "/app", "destination": "https://app.chrome24.store", "permanent": false },
     { "source": "/app/(.*)", "destination": "https://app.chrome24.store/$1", "permanent": false }
+  ],
+  "rewrites": [
+    { "source": "/bees", "destination": "/bees/index.html" },
+    { "source": "/bees/((?!.*\\.).*)", "destination": "/bees/index.html" },
+    { "source": "/((?!bees).*)", "destination": "/index.html" }
   ]
 }
