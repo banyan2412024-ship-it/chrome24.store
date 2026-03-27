@@ -19,7 +19,7 @@ const OFFLINE_KEY = 'bee_offline_queue'
 document.addEventListener('DOMContentLoaded', async () => {
   showScreen('screen-dashboard')
   document.getElementById('bottom-nav').style.display = 'flex'
-  document.getElementById('user-greeting').textContent = 'Welcome! 👋'
+  document.getElementById('user-greeting').textContent = 'Добро пожаловать! 👋 (Welcome!)'
   await loadDashboard()
   window.addEventListener('online', syncOfflineQueue)
   setFeedingDate()
@@ -37,16 +37,16 @@ function switchAuthTab(tab) {
 async function signIn() {
   const email = document.getElementById('signin-email').value.trim()
   const password = document.getElementById('signin-password').value
-  if (!email || !password) return showToast('Please fill in all fields', 'error')
+  if (!email || !password) return showToast('Заполните все поля (Please fill in all fields)', 'error')
 
   const btn = document.getElementById('signin-btn')
-  btn.textContent = 'Signing in...'
+  btn.textContent = 'Вход... (Signing in...)'
   btn.disabled = true
 
   const { error } = await db.auth.signInWithPassword({ email, password })
   if (error) {
     showToast(error.message, 'error')
-    btn.textContent = 'Sign In'
+    btn.textContent = 'Войти (Sign In)'
     btn.disabled = false
   }
 }
@@ -55,11 +55,11 @@ async function signUp() {
   const name = document.getElementById('signup-name').value.trim()
   const email = document.getElementById('signup-email').value.trim()
   const password = document.getElementById('signup-password').value
-  if (!name || !email || !password) return showToast('Please fill in all fields', 'error')
-  if (password.length < 6) return showToast('Password must be at least 6 characters', 'error')
+  if (!name || !email || !password) return showToast('Заполните все поля (Please fill in all fields)', 'error')
+  if (password.length < 6) return showToast('Пароль должен быть не менее 6 символов (Password must be at least 6 characters)', 'error')
 
   const btn = document.getElementById('signup-btn')
-  btn.textContent = 'Creating account...'
+  btn.textContent = 'Создание аккаунта... (Creating account...)'
   btn.disabled = true
 
   const { error } = await db.auth.signUp({
@@ -72,8 +72,8 @@ async function signUp() {
     btn.textContent = 'Create Account'
     btn.disabled = false
   } else {
-    showToast('Account created! Check your email to confirm.', 'success')
-    btn.textContent = 'Create Account'
+    showToast('Аккаунт создан! Проверьте email для подтверждения. (Account created! Check your email.)', 'success')
+    btn.textContent = 'Создать аккаунт (Create Account)'
     btn.disabled = false
   }
 }
@@ -147,14 +147,14 @@ function renderHiveList() {
     el.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">🏠</div>
-        <p>No hives yet.<br>Add your first hive to get started!</p>
+        <p>Ульев пока нет.<br>Добавьте первый улей! (No hives yet. Add your first hive!)</p>
       </div>`
     return
   }
   el.innerHTML = state.hives.map(hive => {
     const last = hive._lastInspection
-    const dateStr = last ? formatDate(last.inspection_date) : 'No inspections yet'
-    const queenBadge = last?.queen_spotted ? '<span class="badge green">👑 Queen seen</span>' : ''
+    const dateStr = last ? formatDate(last.inspection_date) : 'Осмотров не было (No inspections yet)'
+    const queenBadge = last?.queen_spotted ? '<span class="badge green">👑 Матка видна (Queen seen)</span>' : ''
     return `
     <div class="hive-card" onclick="showHiveDetail('${hive.id}')" role="button" tabindex="0" aria-label="View ${hive.name}">
       <h3>🐝 ${hive.name}</h3>
@@ -174,7 +174,7 @@ async function loadRecentActivity() {
 
   const el = document.getElementById('recent-activity')
   if (error || !data?.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><p>No inspections yet.<br>Tap New Inspection to start.</p></div>`
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><p>Осмотров нет.<br>Нажмите «Новый осмотр» чтобы начать. (No inspections yet. Tap New Inspection.)</p></div>`
     return
   }
 
@@ -182,8 +182,8 @@ async function loadRecentActivity() {
     <div class="activity-item">
       <span class="activity-icon">🔍</span>
       <div class="activity-text">
-        <strong>${item.hives?.name || 'Unknown hive'}</strong>
-        <span>${formatDate(item.inspection_date)} · ${item.queen_spotted ? '👑 Queen seen' : 'No queen'} · ${item.temperament || ''}</span>
+        <strong>${item.hives?.name || 'Неизвестный улей (Unknown hive)'}</strong>
+        <span>${formatDate(item.inspection_date)} · ${item.queen_spotted ? '👑 Матка видна (Queen seen)' : 'Матки нет (No queen)'} · ${item.temperament || ''}</span>
       </div>
     </div>
   `).join('')
@@ -197,16 +197,13 @@ function openAddHive() {
 
 async function addHive() {
   const name = document.getElementById('new-hive-name').value.trim()
-  if (!name) return showToast('Please enter a hive name', 'error')
+  if (!name) return showToast('Введите название улья (Please enter a hive name)', 'error')
 
-  const { error } = await db.from('hives').insert([{
-    name,
-    user_id: state.user.id
-  }])
+  const { error } = await db.from('hives').insert([{ name }])
 
-  if (error) return showToast('Could not add hive', 'error')
+  if (error) return showToast('Не удалось добавить улей (Could not add hive)', 'error')
   closeModal('modal-add-hive')
-  showToast(`${name} added!`, 'success')
+  showToast(`${name} добавлен! (added!)`, 'success')
   await loadHives()
 }
 
@@ -292,7 +289,7 @@ function wizardBack() {
 function renderWizardStep(step) {
   document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'))
   document.getElementById(`step-${step}`).classList.add('active')
-  document.getElementById('wizard-step-label').textContent = `Step ${step} of ${state.wizard.totalSteps}`
+  document.getElementById('wizard-step-label').textContent = `Шаг ${step} из ${state.wizard.totalSteps} (Step ${step} of ${state.wizard.totalSteps})`
   document.getElementById('wizard-progress').style.width = `${(step / state.wizard.totalSteps) * 100}%`
   window.scrollTo(0, 0)
 }
@@ -300,20 +297,20 @@ function renderWizardStep(step) {
 function renderReview() {
   const d = state.wizard.data
   document.getElementById('review-summary').innerHTML = `
-    <div class="review-item"><span class="review-label">🏠 Hive</span><span>${d.hive_name || '—'}</span></div>
-    <div class="review-item"><span class="review-label">👑 Queen</span><span>${d.queen_spotted === true ? 'Yes ✅' : d.queen_spotted === false ? 'Not seen ❓' : '—'}</span></div>
-    <div class="review-item"><span class="review-label">🥚 Brood</span><span>${capitalize(d.brood_pattern) || '—'}</span></div>
-    <div class="review-item"><span class="review-label">🐝 Temperament</span><span>${capitalize(d.temperament) || '—'}</span></div>
-    <div class="review-item"><span class="review-label">☀️ Weather</span><span>${capitalize(d.weather) || '—'}</span></div>
-    <div class="review-item"><span class="review-label">🐛 Pests</span><span>${d.pest_issues?.length ? d.pest_issues.join(', ') : 'None'}</span></div>
-    <div class="review-item"><span class="review-label">🍯 Honey</span><span>${document.getElementById('honey-kg').value ? document.getElementById('honey-kg').value + ' kg' : '—'}</span></div>
-    <div class="review-item"><span class="review-label">📝 Notes</span><span>${document.getElementById('inspection-notes').value || '—'}</span></div>
+    <div class="review-item"><span class="review-label">🏠 Улей (Hive)</span><span>${d.hive_name || '—'}</span></div>
+    <div class="review-item"><span class="review-label">👑 Матка (Queen)</span><span>${d.queen_spotted === true ? 'Да ✅ (Yes)' : d.queen_spotted === false ? 'Не видна ❓ (Not seen)' : '—'}</span></div>
+    <div class="review-item"><span class="review-label">🥚 Расплод (Brood)</span><span>${capitalize(d.brood_pattern) || '—'}</span></div>
+    <div class="review-item"><span class="review-label">🐝 Характер (Temperament)</span><span>${capitalize(d.temperament) || '—'}</span></div>
+    <div class="review-item"><span class="review-label">☀️ Погода (Weather)</span><span>${capitalize(d.weather) || '—'}</span></div>
+    <div class="review-item"><span class="review-label">🐛 Вредители (Pests)</span><span>${d.pest_issues?.length ? d.pest_issues.join(', ') : 'Нет (None)'}</span></div>
+    <div class="review-item"><span class="review-label">🍯 Мёд (Honey)</span><span>${document.getElementById('honey-kg').value ? document.getElementById('honey-kg').value + ' кг (kg)' : '—'}</span></div>
+    <div class="review-item"><span class="review-label">📝 Заметки (Notes)</span><span>${document.getElementById('inspection-notes').value || '—'}</span></div>
   `
 }
 
 async function saveInspection() {
   const btn = document.getElementById('save-btn')
-  btn.textContent = 'Saving...'
+  btn.textContent = 'Сохранение... (Saving...)'
   btn.disabled = true
 
   const honeyVal = document.getElementById('honey-kg').value
@@ -325,7 +322,6 @@ async function saveInspection() {
   }
 
   const record = {
-    user_id: state.user.id,
     hive_id: state.wizard.data.hive_id,
     queen_spotted: state.wizard.data.queen_spotted,
     brood_pattern: state.wizard.data.brood_pattern,
@@ -340,20 +336,20 @@ async function saveInspection() {
 
   if (!navigator.onLine) {
     queueOffline('inspection', record)
-    showToast('Saved offline — will sync when connected', 'success')
+    showToast('Сохранено офлайн — синхронизация при подключении (Saved offline)', 'success')
     showScreen('screen-dashboard')
     return
   }
 
   const { error } = await db.from('inspections').insert([record])
   if (error) {
-    showToast('Could not save — check connection', 'error')
-    btn.textContent = '💾 SAVE'
+    showToast('Не удалось сохранить — проверьте соединение (Could not save — check connection)', 'error')
+    btn.textContent = '💾 СОХРАНИТЬ (SAVE)'
     btn.disabled = false
     return
   }
 
-  showToast('Inspection saved! ✅', 'success')
+  showToast('Осмотр сохранён! ✅ (Inspection saved!)', 'success')
   showScreen('screen-dashboard')
   loadDashboard()
 }
@@ -377,10 +373,9 @@ async function saveFeeding() {
   const pollenPatty = document.getElementById('pollen-patty').checked
   const notes = document.getElementById('feed-notes').value.trim()
 
-  if (!hiveId || !date || !amount) return showToast('Please fill in hive, date and amount', 'error')
+  if (!hiveId || !date || !amount) return showToast('Заполните улей, дату и количество (Please fill in hive, date and amount)', 'error')
 
   const record = {
-    user_id: state.user.id,
     hive_id: hiveId,
     feeding_date: date,
     syrup_type: syrupType,
@@ -391,15 +386,15 @@ async function saveFeeding() {
 
   if (!navigator.onLine) {
     queueOffline('feeding', record)
-    showToast('Saved offline — will sync when connected', 'success')
+    showToast('Сохранено офлайн — синхронизация при подключении (Saved offline)', 'success')
     showScreen('screen-dashboard')
     return
   }
 
   const { error } = await db.from('feedings').insert([record])
-  if (error) return showToast('Could not save feeding', 'error')
+  if (error) return showToast('Не удалось сохранить кормление (Could not save feeding)', 'error')
 
-  showToast('Feeding recorded! 🍯', 'success')
+  showToast('Кормление записано! 🍯 (Feeding recorded!)', 'success')
   document.getElementById('feed-amount').value = ''
   document.getElementById('feed-notes').value = ''
   document.getElementById('pollen-patty').checked = false
@@ -439,7 +434,7 @@ async function loadGallery() {
     .order('inspection_date', { ascending: false })
 
   if (error || !data?.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📸</div><p>No photos yet.<br>Add a photo during your next inspection!</p></div>'
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📸</div><p>Фото нет.<br>Добавьте фото во время следующего осмотра! (No photos yet. Add during next inspection!)</p></div>'
     return
   }
 
@@ -457,7 +452,7 @@ let recognition = null
 function toggleVoice() {
   const btn = document.getElementById('voice-btn')
   if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-    showToast('Voice input not supported on this browser', 'error')
+    showToast('Голосовой ввод не поддерживается этим браузером (Voice input not supported)', 'error')
     return
   }
 
@@ -488,7 +483,7 @@ function toggleVoice() {
   }
 
   recognition.onerror = () => {
-    showToast('Voice input stopped', 'error')
+    showToast('Голосовой ввод остановлен (Voice input stopped)', 'error')
     btn.textContent = '🎙️'
     btn.classList.remove('recording')
     recognition = null
@@ -517,7 +512,7 @@ async function syncOfflineQueue() {
   }
 
   if (queue.length) {
-    showToast(`${queue.length} offline record${queue.length > 1 ? 's' : ''} synced ✅`, 'success')
+    showToast(`${queue.length} записей синхронизировано ✅ (records synced)`, 'success')
     loadDashboard()
   }
 }
@@ -561,10 +556,10 @@ function formatDate(dateStr) {
   const date = new Date(dateStr)
   const now = new Date()
   const days = Math.floor((now - date) / 86400000)
-  if (days === 0) return 'Today'
-  if (days === 1) return 'Yesterday'
-  if (days < 7) return `${days} days ago`
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  if (days === 0) return 'Сегодня (Today)'
+  if (days === 1) return 'Вчера (Yesterday)'
+  if (days < 7) return `${days} дн. назад (days ago)`
+  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function capitalize(str) {
