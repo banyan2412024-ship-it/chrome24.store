@@ -15,6 +15,26 @@ const state = {
 const CACHE_KEY = 'bee_cache'
 const OFFLINE_KEY = 'bee_offline_queue'
 
+const QUEEN_LABELS = {
+  seen_healthy: 'Видна ✅ (Seen & healthy)',
+  not_spotted:  'Не видна ❓ (Not spotted)',
+  disappeared:  'Исчезла 💀 (Disappeared)',
+  added:        'Добавлена новая 🆕 (Added new queen)',
+  replaced:     'Заменена 🔄 (Queen replaced)',
+}
+
+const EVENT_ICONS = {
+  queen_event:     '👑',
+  pest_treatment:  '🐛',
+  quick_check:     '👀',
+}
+
+const EVENT_TYPE_LABELS = {
+  queen_event:     'Событие матки (Queen event)',
+  pest_treatment:  'Лечение (Pest treatment)',
+  quick_check:     'Быстрая проверка (Quick check)',
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   showScreen('screen-dashboard')
@@ -167,23 +187,43 @@ function renderHiveList() {
 }
 
 async function loadRecentActivity() {
-  const { data, error } = await db.from('inspections')
-    .select('*, hives(name)')
-    .order('created_at', { ascending: false })
-    .limit(5)
-
   const el = document.getElementById('recent-activity')
-  if (error || !data?.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><p>Осмотров нет.<br>Нажмите «Новый осмотр» чтобы начать. (No inspections yet. Tap New Inspection.)</p></div>`
+
+  const [inspRes, feedRes, eventRes] = await Promise.all([
+    db.from('inspections').select('*, hives(name)').order('created_at', { ascending: false }).limit(5),
+    db.from('feedings').select('*, hives(name)').order('created_at', { ascending: false }).limit(5),
+    db.from('hive_events').select('*, hives(name)').order('created_at', { ascending: false }).limit(5),
+  ])
+
+  const inspItems = (inspRes.data || []).map(i => ({
+    _type: 'inspection', created_at: i.created_at, hive: i.hives?.name || '?',
+    icon: '🔍', label: `Осмотр (Inspection) · ${i.queen_spotted ? '👑 Матка видна' : 'Матка не видна'}`
+  }))
+  const feedItems = (feedRes.data || []).map(i => ({
+    _type: 'feeding', created_at: i.created_at, hive: i.hives?.name || '?',
+    icon: '🍯', label: `Кормление (Feed) · ${i.amount_liters}л · ${i.syrup_type}`
+  }))
+  const eventItems = (eventRes.data || []).map(i => ({
+    _type: 'event', created_at: i.created_at, hive: i.hives?.name || '?',
+    icon: EVENT_ICONS[i.event_type] || '📝',
+    label: `${EVENT_TYPE_LABELS[i.event_type] || i.event_type}${i.data?.queen_status ? ' · ' + (QUEEN_LABELS[i.data.queen_status] || '') : ''}${i.data?.pest_type ? ' · ' + i.data.pest_type : ''}${i.notes ? ' · ' + i.notes.slice(0, 40) : ''}`
+  }))
+
+  const all = [...inspItems, ...feedItems, ...eventItems]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 8)
+
+  if (!all.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><p>Записей нет.<br>Добавьте первое событие! (No activity yet.)</p></div>`
     return
   }
 
-  el.innerHTML = data.map(item => `
+  el.innerHTML = all.map(item => `
     <div class="activity-item">
-      <span class="activity-icon">🔍</span>
+      <span class="activity-icon">${item.icon}</span>
       <div class="activity-text">
-        <strong>${item.hives?.name || 'Неизвестный улей (Unknown hive)'}</strong>
-        <span>${formatDate(item.inspection_date)} · ${item.queen_spotted ? '👑 Матка видна (Queen seen)' : 'Матки нет (No queen)'} · ${item.temperament || ''}</span>
+        <strong>${item.hive}</strong>
+        <span>${item.label}</span>
       </div>
     </div>
   `).join('')
@@ -298,7 +338,7 @@ function renderReview() {
   const d = state.wizard.data
   document.getElementById('review-summary').innerHTML = `
     <div class="review-item"><span class="review-label">🏠 Улей (Hive)</span><span>${d.hive_name || '—'}</span></div>
-    <div class="review-item"><span class="review-label">👑 Матка (Queen)</span><span>${d.queen_spotted === true ? 'Да ✅ (Yes)' : d.queen_spotted === false ? 'Не видна ❓ (Not seen)' : '—'}</span></div>
+    <div class="review-item"><span class="review-label">👑 Матка (Queen)</span><span>${QUEEN_LABELS[d.queen_status] || '—'}</span></div>
     <div class="review-item"><span class="review-label">🥚 Расплод (Brood)</span><span>${capitalize(d.brood_pattern) || '—'}</span></div>
     <div class="review-item"><span class="review-label">🐝 Характер (Temperament)</span><span>${capitalize(d.temperament) || '—'}</span></div>
     <div class="review-item"><span class="review-label">☀️ Погода (Weather)</span><span>${capitalize(d.weather) || '—'}</span></div>
@@ -323,7 +363,7 @@ async function saveInspection() {
 
   const record = {
     hive_id: state.wizard.data.hive_id,
-    queen_spotted: state.wizard.data.queen_spotted,
+    queen_spotted: state.wizard.data.queen_status === 'seen_healthy',
     brood_pattern: state.wizard.data.brood_pattern,
     temperament: state.wizard.data.temperament,
     weather: state.wizard.data.weather,
@@ -521,6 +561,116 @@ function cacheData(key, data) {
   const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}')
   cache[key] = data
   localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
+}
+
+// ── Hive Select Helper ────────────────────────────────────────────────────────
+function buildHiveSelect(selectId) {
+  const sel = document.getElementById(selectId)
+  if (!state.hives.length) {
+    sel.innerHTML = '<option value="">— Сначала добавьте улей (Add a hive first) —</option>'
+    return
+  }
+  sel.innerHTML = state.hives.map(h => `<option value="${h.id}">${h.name}</option>`).join('')
+}
+
+function todayValue() {
+  return new Date().toISOString().split('T')[0]
+}
+
+// ── Queen Event ───────────────────────────────────────────────────────────────
+let queenEventData = {}
+
+function openQueenEvent() {
+  queenEventData = {}
+  buildHiveSelect('queen-hive')
+  document.getElementById('queen-date').value = todayValue()
+  document.getElementById('queen-notes').value = ''
+  document.querySelectorAll('#queen-status-options .big-opt').forEach(b => b.classList.remove('selected'))
+  showScreen('screen-queen')
+}
+
+function selectEventOpt(field, value, el) {
+  el.closest('.big-options').querySelectorAll('.big-opt').forEach(b => b.classList.remove('selected'))
+  el.classList.add('selected')
+  queenEventData[field] = value
+}
+
+async function saveQueenEvent() {
+  const hiveId = document.getElementById('queen-hive').value
+  const date = document.getElementById('queen-date').value
+  const notes = document.getElementById('queen-notes').value.trim()
+  if (!hiveId) return showToast('Выберите улей (Select a hive)', 'error')
+  if (!queenEventData.queen_status) return showToast('Выберите статус матки (Select queen status)', 'error')
+
+  const { error } = await db.from('hive_events').insert([{
+    hive_id: hiveId,
+    event_type: 'queen_event',
+    event_date: date,
+    notes: notes || null,
+    data: { queen_status: queenEventData.queen_status },
+  }])
+  if (error) return showToast('Ошибка сохранения (Could not save)', 'error')
+  showToast('Событие матки сохранено! 👑 (Queen event saved!)', 'success')
+  showScreen('screen-dashboard')
+  loadDashboard()
+}
+
+// ── Pest Treatment ────────────────────────────────────────────────────────────
+function openPestTreatment() {
+  buildHiveSelect('pest-hive')
+  document.getElementById('pest-date-applied').value = todayValue()
+  document.getElementById('pest-date-removed').value = ''
+  document.getElementById('pest-notes').value = ''
+  showScreen('screen-pest')
+}
+
+async function savePestTreatment() {
+  const hiveId = document.getElementById('pest-hive').value
+  const pestType = document.getElementById('pest-type').value
+  const treatment = document.getElementById('pest-treatment').value
+  const dateApplied = document.getElementById('pest-date-applied').value
+  const dateRemoved = document.getElementById('pest-date-removed').value
+  const notes = document.getElementById('pest-notes').value.trim()
+  if (!hiveId || !dateApplied) return showToast('Выберите улей и дату (Select hive and date)', 'error')
+
+  const { error } = await db.from('hive_events').insert([{
+    hive_id: hiveId,
+    event_type: 'pest_treatment',
+    event_date: dateApplied,
+    notes: notes || null,
+    data: { pest_type: pestType, treatment, date_removed: dateRemoved || null },
+  }])
+  if (error) return showToast('Ошибка сохранения (Could not save)', 'error')
+  showToast('Лечение записано! 🐛 (Treatment saved!)', 'success')
+  showScreen('screen-dashboard')
+  loadDashboard()
+}
+
+// ── Quick Check ───────────────────────────────────────────────────────────────
+function openQuickCheck() {
+  buildHiveSelect('check-hive')
+  document.getElementById('check-date').value = todayValue()
+  document.getElementById('check-notes').value = ''
+  showScreen('screen-check')
+}
+
+async function saveQuickCheck() {
+  const hiveId = document.getElementById('check-hive').value
+  const date = document.getElementById('check-date').value
+  const notes = document.getElementById('check-notes').value.trim()
+  if (!hiveId || !date) return showToast('Выберите улей и дату (Select hive and date)', 'error')
+
+  const { error } = await db.from('hive_events').insert([{
+    hive_id: hiveId,
+    event_type: 'quick_check',
+    event_date: date,
+    notes: notes || null,
+    data: {},
+  }])
+  if (error) return showToast('Ошибка сохранения (Could not save)', 'error')
+  showToast('Проверка записана! 👀 (Check saved!)', 'success')
+  showScreen('screen-dashboard')
+  loadDashboard()
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────────────

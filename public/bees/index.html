@@ -68,13 +68,22 @@
 
   <div class="container">
     <div class="quick-actions">
-      <button class="quick-btn" onclick="startInspection()" aria-label="Новый осмотр (New inspection)">
-        <span class="icon">🔍</span>Новый осмотр (New Inspection)
+      <button class="quick-btn" onclick="startInspection()" aria-label="Осмотр (Inspection)">
+        <span class="icon">🔍</span>Осмотр (Inspect)
       </button>
-      <button class="quick-btn" onclick="showScreen('screen-feeding')" aria-label="Записать кормление (Record feeding)">
+      <button class="quick-btn" onclick="openQuickCheck()" aria-label="Быстрая проверка (Quick check)">
+        <span class="icon">👀</span>Проверка (Check)
+      </button>
+      <button class="quick-btn" onclick="openQueenEvent()" aria-label="Событие матки (Queen event)">
+        <span class="icon">👑</span>Матка (Queen)
+      </button>
+      <button class="quick-btn" onclick="openPestTreatment()" aria-label="Лечение от вредителей (Pest treatment)">
+        <span class="icon">🐛</span>Лечение (Treatment)
+      </button>
+      <button class="quick-btn" onclick="showScreen('screen-feeding')" aria-label="Кормление (Feed)">
         <span class="icon">🍯</span>Кормление (Feed)
       </button>
-      <button class="quick-btn" onclick="showScreen('screen-gallery')" aria-label="Фотогалерея (View photos)">
+      <button class="quick-btn" onclick="showScreen('screen-gallery')" aria-label="Фото (Photos)">
         <span class="icon">📸</span>Фото (Photos)
       </button>
     </div>
@@ -114,16 +123,25 @@
       </div>
     </div>
 
-    <!-- Step 2: Queen spotted? -->
+    <!-- Step 2: Queen status -->
     <div class="wizard-step" id="step-2">
-      <div class="step-title">Видели ли вы матку? 👑 (Did you spot the queen?)</div>
-      <div class="step-sub">Ищите крупную пчелу, движущуюся по рамкам (Look for the larger bee moving through the frames)</div>
+      <div class="step-title">Статус матки? 👑 (Queen status?)</div>
+      <div class="step-sub">Что произошло с маткой во время осмотра? (What is the queen situation?)</div>
       <div class="big-options">
-        <button class="big-opt" onclick="selectOption('queen_spotted', true, this)" aria-label="Да, матку видел (Yes, queen spotted)">
-          <span class="opt-icon">👑</span> Да, я её видел! (Yes, I saw her!)
+        <button class="big-opt" onclick="selectOption('queen_status', 'seen_healthy', this)">
+          <span class="opt-icon">👑</span> Видна и здорова (Seen & healthy)
         </button>
-        <button class="big-opt" onclick="selectOption('queen_spotted', false, this)" aria-label="Матку не видел (No queen spotted)">
-          <span class="opt-icon">❓</span> В этот раз нет (Not this time)
+        <button class="big-opt" onclick="selectOption('queen_status', 'not_spotted', this)">
+          <span class="opt-icon">❓</span> Не видна (Not spotted)
+        </button>
+        <button class="big-opt" onclick="selectOption('queen_status', 'disappeared', this)">
+          <span class="opt-icon">💀</span> Исчезла / Пропала (Disappeared)
+        </button>
+        <button class="big-opt" onclick="selectOption('queen_status', 'added', this)">
+          <span class="opt-icon">🆕</span> Добавили новую матку (Added new queen)
+        </button>
+        <button class="big-opt" onclick="selectOption('queen_status', 'replaced', this)">
+          <span class="opt-icon">🔄</span> Заменили матку (Queen replaced)
         </button>
       </div>
       <div class="wizard-nav">
@@ -313,6 +331,119 @@
       <textarea id="feed-notes" placeholder="Любые наблюдения... (Any observations...)"></textarea>
     </div>
     <button class="btn btn-primary btn-full" onclick="saveFeeding()" style="margin-top:8px">💾 Сохранить кормление (Save Feeding)</button>
+  </div>
+</div>
+
+<!-- ── Queen Event Screen ─────────────────────────────────────────────── -->
+<div id="screen-queen" class="screen">
+  <header>
+    <div><h1>👑 Событие матки (Queen Event)</h1></div>
+    <button class="btn btn-ghost" onclick="showScreen('screen-dashboard')" aria-label="Отмена (Cancel)">Отмена (Cancel)</button>
+  </header>
+  <div class="container">
+    <div class="form-group">
+      <label for="queen-hive">Улей (Hive)</label>
+      <select id="queen-hive"></select>
+    </div>
+    <div class="step-title" style="margin:16px 0 8px">Что случилось с маткой? (What happened?)</div>
+    <div class="big-options" id="queen-status-options">
+      <button class="big-opt" onclick="selectEventOpt('queen_status','seen_healthy',this)">
+        <span class="opt-icon">👑</span> Видна и здорова (Seen & healthy)
+      </button>
+      <button class="big-opt" onclick="selectEventOpt('queen_status','not_spotted',this)">
+        <span class="opt-icon">❓</span> Не видна (Not spotted)
+      </button>
+      <button class="big-opt" onclick="selectEventOpt('queen_status','disappeared',this)">
+        <span class="opt-icon">💀</span> Исчезла / Пропала (Disappeared)
+      </button>
+      <button class="big-opt" onclick="selectEventOpt('queen_status','added',this)">
+        <span class="opt-icon">🆕</span> Добавили новую матку (Added new queen)
+      </button>
+      <button class="big-opt" onclick="selectEventOpt('queen_status','replaced',this)">
+        <span class="opt-icon">🔄</span> Заменили матку (Queen replaced)
+      </button>
+    </div>
+    <div class="form-group" style="margin-top:16px">
+      <label for="queen-date">Дата (Date)</label>
+      <input type="date" id="queen-date" />
+    </div>
+    <div class="form-group">
+      <label for="queen-notes">Заметки, необязательно (Notes, optional)</label>
+      <textarea id="queen-notes" placeholder="Любые наблюдения... (Any observations...)"></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveQueenEvent()" style="margin-top:8px">💾 Сохранить (Save)</button>
+  </div>
+</div>
+
+<!-- ── Pest Treatment Screen ───────────────────────────────────────────── -->
+<div id="screen-pest" class="screen">
+  <header>
+    <div><h1>🐛 Лечение (Pest Treatment)</h1></div>
+    <button class="btn btn-ghost" onclick="showScreen('screen-dashboard')" aria-label="Отмена (Cancel)">Отмена (Cancel)</button>
+  </header>
+  <div class="container">
+    <div class="form-group">
+      <label for="pest-hive">Улей (Hive)</label>
+      <select id="pest-hive"></select>
+    </div>
+    <div class="form-group">
+      <label for="pest-type">Вредитель (Pest)</label>
+      <select id="pest-type">
+        <option value="varroa">🔴 Клещ варроа (Varroa mites)</option>
+        <option value="wax_moths">🦋 Восковая моль (Wax moths)</option>
+        <option value="ants">🐜 Муравьи (Ants)</option>
+        <option value="small_hive_beetles">🪲 Малый ульевой жук (Small hive beetles)</option>
+        <option value="other">❓ Другое (Other)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="pest-treatment">Метод лечения (Treatment)</label>
+      <select id="pest-treatment">
+        <option value="apivar">Apivar</option>
+        <option value="oxalic_vapour">Испарение щавелевой кислоты (Oxalic acid vapour)</option>
+        <option value="oxalic_drizzle">Капельный метод ОК (OA drizzle)</option>
+        <option value="apiguard">Apiguard</option>
+        <option value="other">Другое (Other)</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="pest-date-applied">Дата применения (Date applied)</label>
+        <input type="date" id="pest-date-applied" />
+      </div>
+      <div class="form-group">
+        <label for="pest-date-removed">Дата снятия (Date removed, optional)</label>
+        <input type="date" id="pest-date-removed" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="pest-notes">Заметки, необязательно (Notes, optional)</label>
+      <textarea id="pest-notes" placeholder="Дозировка, наблюдения... (Dosage, observations...)"></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="savePestTreatment()" style="margin-top:8px">💾 Сохранить лечение (Save Treatment)</button>
+  </div>
+</div>
+
+<!-- ── Quick Check Screen ─────────────────────────────────────────────── -->
+<div id="screen-check" class="screen">
+  <header>
+    <div><h1>👀 Быстрая проверка (Quick Check)</h1></div>
+    <button class="btn btn-ghost" onclick="showScreen('screen-dashboard')" aria-label="Отмена (Cancel)">Отмена (Cancel)</button>
+  </header>
+  <div class="container">
+    <div class="form-group">
+      <label for="check-hive">Улей (Hive)</label>
+      <select id="check-hive"></select>
+    </div>
+    <div class="form-group">
+      <label for="check-date">Дата (Date)</label>
+      <input type="date" id="check-date" />
+    </div>
+    <div class="form-group">
+      <label for="check-notes">Заметки (Notes)</label>
+      <textarea id="check-notes" placeholder="Что вы заметили? (What did you observe?)"></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveQuickCheck()" style="margin-top:8px">💾 Сохранить проверку (Save Check)</button>
   </div>
 </div>
 
