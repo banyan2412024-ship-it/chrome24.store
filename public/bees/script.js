@@ -17,16 +17,10 @@ const OFFLINE_KEY = 'bee_offline_queue'
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  const { data: { session } } = await db.auth.getSession()
-  if (session) {
-    await onSignedIn(session.user)
-  }
-  db.auth.onAuthStateChange((_event, session) => {
-    if (session) onSignedIn(session.user)
-    else onSignedOut()
-  })
-
-  // Sync offline queue when back online
+  showScreen('screen-dashboard')
+  document.getElementById('bottom-nav').style.display = 'flex'
+  document.getElementById('user-greeting').textContent = 'Welcome! 👋'
+  await loadDashboard()
   window.addEventListener('online', syncOfflineQueue)
   setFeedingDate()
 })
