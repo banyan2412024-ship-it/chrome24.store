@@ -169,7 +169,7 @@ function renderHiveList() {
         ${queenBadge}
       </div>
     </div>
-  `).join('')
+  `}).join('')
 }
 
 async function loadRecentActivity() {
